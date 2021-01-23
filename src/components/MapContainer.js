@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import ReactMapboxGl, { Marker, Popup, Layer, Feature, Source, GeoJSONLayer } from 'react-mapbox-gl';
 import DrawControl from 'react-mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import StaticMode from '@mapbox/mapbox-gl-draw-static-mode'
 
 import NewMovementInput from './NewMovementInput';
 import MovementsList from './MovementsList';
@@ -14,9 +15,10 @@ import CityPin from './CityPin';
 
 import { Button } from '@material-ui/core';
 import AddCircleIcon from '@material-ui/icons/AddCircle';
-import EditIcon from '@material-ui/icons/Edit';
-import DeleteIcon from '@material-ui/icons/Delete';
+
 import ColorizeIcon from '@material-ui/icons/Colorize';
+import ColorLensIcon from '@material-ui/icons/ColorLens';
+import SubjectIcon from '@material-ui/icons/Subject';
 
 import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
@@ -24,6 +26,8 @@ import MuiAlert from '@material-ui/lab/Alert';
 import { v4 as uuidv4 } from 'uuid';
 import TabMenu from './TabMenu';
 import { LngLat } from 'mapbox-gl';
+import EditMovement from './EditMovement';
+import MovementSummary from './MovementSummary';
 
 // import RoomIcon from '@material-ui/icons/Room';
 
@@ -34,6 +38,9 @@ function MapContainer(props) {
     const [mapCenter, setMapCenter] = useState([19.8770, 45.2479909])
     const [lastClickLngLat, setLastClickLngLat] = useState(null)
     const [route, setRoute] = useState(null)
+
+    // rename this shit
+    const [inputOpen, setInputOpen] = useState(false)
 
     const [tabIndex, setTabIndex] = useState(0)
 
@@ -46,29 +53,37 @@ function MapContainer(props) {
     const renderTabContents = (i) => {
         switch (i) {
             case 0:
-                return <div>
-                    <MovementsList
-                        movements={movements}
-                        deleteMovement={deleteMovement}
-                        editMovement={editMovement} />
-                    <NewMovementInput
-                        lastClickLngLat={lastClickLngLat}
-                        addMovement={addMovement}
-                        computeRoute={computeRoute}
-                        renderLines={renderLines} />
-                    <Button size="large" startIcon={<AddCircleIcon />}>
-                        Add new movement
-                    </Button>
+                return <div style={{ maxHeight: '85vh', overflow: 'auto' }}>
+                    {movements.map((e, i) => (
+                        <MovementSummary
+                            line={e}
+                            index={i}
+                            deleteMovement={deleteMovement}
+                            editMovement={editMovement}
+                            renderLines={renderLines}
+                            lastClickLngLat={lastClickLngLat} />
+                    ))}
+
+                    {!inputOpen ?
+                        <Button onClick={() => setInputOpen(true)} size="large" color="primary" startIcon={<AddCircleIcon />}>
+                            Add new movement
+                    </Button> :
+                        <EditMovement
+                            setInputOpen={setInputOpen}
+                            lastClickLngLat={lastClickLngLat}
+                            save={addMovement}
+                            renderLines={renderLines}
+                        />
+                    }
+
+
                 </div>
             case 1:
                 return <RouteList
                     route={route}
                 />
             default:
-                return <MovementsList
-                    movements={movements}
-                    deleteMovement={deleteMovement}
-                    editMovement={editMovement} />
+                return null
         }
     }
 
@@ -108,7 +123,7 @@ function MapContainer(props) {
     }
 
     // CRUD operations
-    const addMovement = (slat, slng, elat, elng, title, description) => {
+    const addMovement = ({ slat, slng, elat, elng, title, description, color }) => {
         if (!isMovementUnique(slat, slng, elat, elng, description)) {
             console.log(`User tried to add a non-unique movement`)
             setSnackbarState({
@@ -120,16 +135,13 @@ function MapContainer(props) {
             });
         }
         else {
-            // Gets random color and removes it from array
-            // TODO: let user select color
-            const [randomColor] = lineColorPalette.splice(Math.floor(Math.random() * lineColorPalette.length), 1);
             const newLine = {
                 type: 'LineString',
                 id: uuidv4(),
-                coordinates: [[slng, slat], [elng, elat]],
+                coordinates: [[parseFloat(slng), parseFloat(slat)], [parseFloat(elng), parseFloat(elat)]],
                 title,
                 description,
-                color: randomColor
+                color
             }
             setMovements([...movements, newLine])
             setSnackbarState({
@@ -146,7 +158,7 @@ function MapContainer(props) {
 
     }
 
-    const editMovement = (slat, slng, elat, elng, description, id) => {
+    const editMovement = ({ slat, slng, elat, elng, title, description, color, id }) => {
         const thisMovement = movements.find(e => e.id === id);
         if (!isMovementUnique(slat, slng, elat, elng, description, id)) {
             console.log(`User tried to edit movement, non unique`)
@@ -160,11 +172,15 @@ function MapContainer(props) {
         }
         else {
             // Change the movement in place
-            thisMovement.coordinates[0][0] = slng;
-            thisMovement.coordinates[0][1] = slat;
-            thisMovement.coordinates[1][0] = elng;
-            thisMovement.coordinates[1][1] = elat;
+            thisMovement.coordinates[0][0] = parseFloat(slng);
+            thisMovement.coordinates[0][1] = parseFloat(slat);
+            thisMovement.coordinates[1][0] = parseFloat(elng);
+            thisMovement.coordinates[1][1] = parseFloat(elat);
             thisMovement.description = description;
+            thisMovement.title = title;
+            thisMovement.color = color;
+
+            setMovements(movements)
 
             setSnackbarState({
                 ...snackbarState,
@@ -210,7 +226,6 @@ function MapContainer(props) {
 
     // Sets the current features to the movements array
     const renderLines = () => {
-        console.log(`Rendering lines ${movements} with ${drawControl}`)
         if (drawControl.current) {
             drawControl.current.draw.set({
                 type: 'FeatureCollection',
@@ -469,6 +484,8 @@ function MapContainer(props) {
                         // onRender={renderLines}
                         >
                             <DrawControl
+                                modes={{ _static: StaticMode }}
+                                defaultMode="_static"
                                 userProperties={true}
                                 styles={drawStyles}
                                 ref={drawControl}

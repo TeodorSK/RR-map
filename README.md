@@ -7,3 +7,10 @@ i couldve kept state as one object instead of having 4 seperate setters
 
 i shouldve put all utils into seperate files
 
+i got rid of unecessary wrapper components that only render multiple other components
+
+known bugs:
+sometimes the lines fail to render on mount. Clicking the movements tab forces a re-render and fixes the issue.
+
+editing only color, description or title doesnt update the map
+i suspect the map only listens for changes in the "geometry" property in each object, and doesn't look at the "properties" property

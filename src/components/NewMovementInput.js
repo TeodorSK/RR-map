@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
+import { GithubPicker } from 'react-color';
+
 
 
 function NewMovementInput(props) {
@@ -11,6 +13,7 @@ function NewMovementInput(props) {
     const [elng, setELng] = useState(0);
     const [description, setDesc] = useState("");
     const [title, setTitle] = useState("")
+    const [color, setColor] = useState('#008800')
 
     // const [inputFields, setInputFields] = useState({
     //     slat: 0,
@@ -31,7 +34,7 @@ function NewMovementInput(props) {
     const addMovement = (e) => {
         e.preventDefault()
         console.log(`received lnglat: ${slng} ${slat}`)
-        props.addMovement(parseFloat(slat), parseFloat(slng), parseFloat(elat), parseFloat(elng), title, description)
+        props.addMovement(parseFloat(slat), parseFloat(slng), parseFloat(elat), parseFloat(elng), title, description, color)
         resetFields()
     }
 
@@ -61,7 +64,7 @@ function NewMovementInput(props) {
     }, [props.lastClickLngLat])
 
     return (
-        <div>
+        <div style={{ backgroundColor: color }}>
             <TextField onChange={(e) => setSLat(e.target.value)} value={slat} label="Start Lat" variant="outlined" />
             <TextField onChange={(e) => setSLng(e.target.value)} value={slng} label="Start Lng" variant="outlined" />
             <Button onClick={() => { setPickLngLat({ start: true }) }}>pick</Button>
@@ -72,6 +75,8 @@ function NewMovementInput(props) {
             <TextField onChange={(e) => setDesc(e.target.value)} value={description} label="Description" variant="outlined" />
             <br />
             <TextField onChange={(e) => setTitle(e.target.value)} value={title} label="Title" variant="outlined" />
+            <br />
+            <GithubPicker color={color} onChangeComplete={(color) => setColor(color.hex)} />
             <br />
             <Button onClick={addMovement}>Add movement</Button>
             <Button onClick={props.computeRoute}>Compute Route</Button>
