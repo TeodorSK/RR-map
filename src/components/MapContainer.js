@@ -18,7 +18,6 @@ import AddCircleIcon from '@material-ui/icons/AddCircle';
 
 import ColorizeIcon from '@material-ui/icons/Colorize';
 import ColorLensIcon from '@material-ui/icons/ColorLens';
-import SubjectIcon from '@material-ui/icons/Subject';
 
 import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
@@ -33,6 +32,8 @@ import MovementSummary from './MovementSummary';
 
 function MapContainer(props) {
 
+    // Higher sensitivity -> grid is more dense
+    const GRID_SENSITIVITY = 2
     const drawControl = useRef(null)
     const [movements, setMovements] = useState([])
     const [mapCenter, setMapCenter] = useState([19.8770, 45.2479909])
@@ -61,7 +62,9 @@ function MapContainer(props) {
                             deleteMovement={deleteMovement}
                             editMovement={editMovement}
                             renderLines={renderLines}
-                            lastClickLngLat={lastClickLngLat} />
+                            lastClickLngLat={lastClickLngLat}
+                            drawControl={drawControl}
+                            setSnackbarState={setSnackbarState} />
                     ))}
 
                     {!inputOpen ?
@@ -73,15 +76,22 @@ function MapContainer(props) {
                             lastClickLngLat={lastClickLngLat}
                             save={addMovement}
                             renderLines={renderLines}
+                            drawControl={drawControl}
+                            setSnackbarState={setSnackbarState}
                         />
                     }
 
 
                 </div>
             case 1:
-                return <RouteList
-                    route={route}
-                />
+                return <div style={{ maxHeight: '85vh', overflow: 'auto' }}>
+                    <RouteList
+                        computeRoute={computeRoute}
+                        renderLines={renderLines}
+                        route={route}
+                    />
+                </div>
+
             default:
                 return null
         }
@@ -107,11 +117,11 @@ function MapContainer(props) {
 
     const Map = useMemo(props => ReactMapboxGl({
         accessToken:
-            'pk.eyJ1IjoiZmFrZXVzZXJnaXRodWIiLCJhIjoiY2pwOGlneGI4MDNnaDN1c2J0eW5zb2ZiNyJ9.mALv0tCpbYUPtzT7YysA2g'
+            'pk.eyJ1IjoidGVvZG9yc2siLCJhIjoiY2trMXJyZGxxMDZuMzJ2a3p1cGE4cXdxeCJ9.6y5XCy4WYn_JaPSEsANL5w'
     }), [])
 
-    // Higher sensitivity -> grid is more dense
-    const GRID_SENSITIVITY = 1
+
+
     const mapClick = (map, e) => {
         const { lng, lat } = e.lngLat;
 
@@ -180,6 +190,10 @@ function MapContainer(props) {
             thisMovement.title = title;
             thisMovement.color = color;
 
+            // Map only updates Features if you edit their geometry.
+            // Updating fields in the "properties" of the Feature has to be done explicitly:
+            drawControl.current.draw.setFeatureProperty(id, "color", color)
+
             setMovements(movements)
 
             setSnackbarState({
@@ -234,7 +248,7 @@ function MapContainer(props) {
                         type: 'Feature',
                         properties: { description: line.description, lineColor: line.color, }, //Description needs to be in properties sub-object ONLY for adding to map
                         id: line.id,
-                        geometry: { type: 'LineString', coordinates: line.coordinates }
+                        geometry: { type: 'LineString', coordinates: line.coordinates, }
                     }
                 })
             })
@@ -281,25 +295,10 @@ function MapContainer(props) {
             ['has', 'user_color']
         ],
         'paint': {
-            'circle-radius': 4,
+            'circle-radius': 6,
             'circle-color': ['get', 'user_color']
         }
     }];
-
-    const lineColorPalette = [
-        "#f44336",
-        "#9c27b0",
-        "#e91e63",
-        "#3f51b5",
-        "#2196f3",
-        "#00bcd4",
-        "#009688",
-        "#4caf50",
-        "#cddc39",
-        "#ffeb3b",
-        "#ff9800",
-        "#795548",
-    ]
 
     const cartDist = (pt1, pt2) => {
         const [x1, y1] = pt1;
@@ -324,7 +323,8 @@ function MapContainer(props) {
             const startPoint = movements[0].coordinates[0]
             const routeNodes = [{
                 coordinates: startPoint,
-                type: 'start'
+                type: 'start',
+                title: movements[0].title
             }]
 
             // Only grab the coordinates
@@ -339,7 +339,7 @@ function MapContainer(props) {
             // Initialize start point
             var nextNearestPoint = {
                 coordinates: [0, 0],
-                type: null
+                type: null,
             }
             var nextIndex = [-1, -1]
 
@@ -358,7 +358,7 @@ function MapContainer(props) {
                             nextNearestPoint.coordinates = e.coordinates[0]
                             // If there is a 2nd coordinate, that means this is the start coordinate, otherwise this is the end coordinate
                             nextNearestPoint.type = e.coordinates[1] ? 'start' : 'end'
-                            nextNearestPoint.title = e.title
+                            nextNearestPoint.title = e.title ? e.title : `Movement #${i}`
                             nextIndex = i
                         }
                     }
@@ -386,6 +386,19 @@ function MapContainer(props) {
             console.log(routeNodes)
             setRoute(routeNodes)
 
+            setTimeout(() => {
+                // Draw route
+                drawControl.current.draw.deleteAll()
+
+                drawControl.current.draw.set({
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        properties: { lineColor: "#000" },
+                        geometry: { type: 'LineString', coordinates: routeNodes.map((e) => e.coordinates) }
+                    }]
+                })
+            }, 1)
             // Draw route
             drawControl.current.draw.deleteAll()
 
@@ -393,7 +406,7 @@ function MapContainer(props) {
                 type: 'FeatureCollection',
                 features: [{
                     type: 'Feature',
-                    properties: { lineColor: "#fff" },
+                    properties: { lineColor: "#000" },
                     geometry: { type: 'LineString', coordinates: routeNodes.map((e) => e.coordinates) }
                 }]
             })
@@ -404,51 +417,9 @@ function MapContainer(props) {
                 open: true,
                 color: "error",
                 horizontal: "center",
-                text: `Cannot compute route for given movements`
+                text: movements.length > 1 ? `Cannot compute route for given movements` : `Enter more than one movement before computing route`
             });
         }
-    }
-
-    const exampleGeoJson = {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [0, 0]
-                },
-                "properties": {
-                    "name": "Fred",
-                    "gender": "Male",
-                    "color": "#e91e63"
-                }
-            },
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [1, 1]
-                },
-                "properties": {
-                    "name": "Martha",
-                    "color": "#e91e63",
-                    "gender": "Female"
-                }
-            },
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [2, 2]
-                },
-                "properties": {
-                    "name": "Zelda",
-                    "color": "#e91e63",
-                    "gender": "Female"
-                }
-            }
-        ]
     }
 
     return (
@@ -475,7 +446,7 @@ function MapContainer(props) {
                 <Grid item xs={8}>
                     <Card>
                         <Map
-                            style="mapbox://styles/mapbox/dark-v10"
+                            style="mapbox://styles/teodorsk/ckkabo7v435c417mymuscsd2k"
                             containerStyle={{
                                 height: '90vh',
                             }}

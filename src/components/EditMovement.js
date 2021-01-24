@@ -1,19 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
 import ColorizeIcon from '@material-ui/icons/Colorize';
+import RoomIcon from '@material-ui/icons/Room';
 import ColorLensIcon from '@material-ui/icons/ColorLens';
 import SubjectIcon from '@material-ui/icons/Subject';
-import { Box, Button, Card, Divider, Grid, Popover, TextField, Typography } from '@material-ui/core';
+import { Box, Button, Card, Divider, Grid, IconButton, Popover, TextField, Tooltip, Typography } from '@material-ui/core';
 import { GithubPicker } from 'react-color';
 
 function EditMovement(props) {
 
+    const saveBtn = useRef(null)
     const [inputFields, setInputFields] = useState({
-        slat: 0,
-        slng: 0,
-        elat: 0,
-        elng: 0,
+        slat: undefined,
+        slng: undefined,
+        elat: undefined,
+        elng: undefined,
         title: "",
         description: "",
         color: "#303f9f",
@@ -30,6 +32,7 @@ function EditMovement(props) {
     //0 || props.movement.slat
     const { slat, slng, elat, elng, title, description, color } = inputFields;
 
+    // Fill edit fields
     useEffect(() => {
         if (props.movement) {
             const { id, coordinates, title, description, color } = props.movement
@@ -48,6 +51,7 @@ function EditMovement(props) {
     }, [])
 
 
+
     const [popoverAnchor, setPopoverAnchor] = useState(null);
     const isPopoverOpen = Boolean(popoverAnchor);
     const openPopover = (event) => {
@@ -61,29 +65,49 @@ function EditMovement(props) {
         start: false,
         end: false
     })
+
     useEffect(() => {
         if (!props.lastClickLngLat) return;
         const { lng, lat } = props.lastClickLngLat;
 
         if (pickLngLat.start) {
             setInputFields({ ...inputFields, slat: lat, slng: lng })
+            props.drawControl.current.draw.delete(['start', 'end'])
+            setTimeout(() => {
+                props.drawControl.current.draw.add({
+                    type: 'Feature',
+                    properties: { color: color }, //Description needs to be in properties sub-object ONLY for adding to map
+                    id: 'start',
+                    geometry: { type: 'Point', coordinates: [lng, lat] }
+
+                })
+
+            }, 1)
             setPickLngLat({ start: false, end: true })
         }
         if (pickLngLat.end) {
             setInputFields({ ...inputFields, elat: lat, elng: lng })
+            props.drawControl.current.draw.add({
+                type: 'Feature',
+                properties: { color: color }, //Description needs to be in properties sub-object ONLY for adding to map
+                id: 'end',
+                geometry: { type: 'Point', coordinates: [lng, lat] }
+
+            })
             setPickLngLat({ end: false })
         }
     }, [props.lastClickLngLat])
-
+    // Scroll to botton (saveBtn) on render
+    useEffect(() => { saveBtn.current?.scrollIntoView(); }, [pickLngLat])
     const save = () => {
 
         // Non-zero validation
-        if ([slng, slat, elng, elat].includes(0)) {
+        if ([slng, slat, elng, elat].includes(undefined)) {
             setError({
-                slng: slng === 0,
-                slat: slat === 0,
-                elng: elng === 0,
-                elat: elat === 0
+                slng: !slng,
+                slat: !slat,
+                elng: !elng,
+                elat: !elat
             })
         }
         else {
@@ -115,36 +139,61 @@ function EditMovement(props) {
             <Box m={2}>
                 <Grid container spacing={2}>
                     <Grid item xs={12}>
-                        <TextField fullWidth autoFocus label="Title" placeholder="Add Title" value={title} onChange={(e) => setInputFields({ ...inputFields, title: e.target.value })} />
+                        <TextField size="medium" fullWidth autoFocus label="Title" placeholder="Add Title" value={title} onChange={(e) => setInputFields({ ...inputFields, title: e.target.value })} />
                     </Grid>
                     <Grid container item justify="space-between" alignItems="center">
                         <Grid inputMode>
                             <Typography variant="body" align="left">Location</Typography>
                         </Grid>
                         <Grid item xs={4}>
-                            <Button onClick={() => { setPickLngLat({ start: true }) }} variant="contained" color="primary" startIcon={<ColorizeIcon />} >Pick location</Button>
+                            {/* <Button onClick={() => { setPickLngLat({ start: true }) }} variant="contained" color="primary" startIcon={<ColorizeIcon />} >Pick location</Button> */}
+                            {/* <IconButton variant="contained" color="primary" onClick={() => { setPickLngLat({ start: true }) }}>
+                                <Tooltip title="Click on map to pick coordinates" >
+                                    <ColorizeIcon />
+                                </Tooltip>
+                            </IconButton> */}
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={() => {
+                                    props.setSnackbarState({
+                                        open: true,
+                                        color: "info",
+                                        vertical: 'top',
+
+                                        horizontal: "center",
+                                        text: `Click anywhere on the map to drop start/end point`
+                                    })
+                                    setPickLngLat({ start: true })
+                                }} startIcon={<RoomIcon />}>
+                                Select location
+                        </Button>
+
                         </Grid>
                     </Grid>
 
-                    <Grid container item justify="space-between" alignItems="center">
-                        <Grid item >
-                            <Typography variant="body" align="left">From</Typography>
-                        </Grid>
-                        <Grid item xs={8}>
-                            <TextField error={error.slng} helperText={error.slng ? "Enter valid coordinate" : null} value={slng} label="Longitude" onChange={(e) => setInputFields({ ...inputFields, slng: e.target.value })} />
-                            <TextField error={error.slat} helperText={error.slat ? "Enter valid coordinate" : null} value={slat} label="Latitude" onChange={(e) => setInputFields({ ...inputFields, slat: e.target.value })} />
-                        </Grid>
-                    </Grid>
+                    {(pickLngLat.start || pickLngLat.end || slat || elat) && <Grid item container>
 
-                    <Grid container item justify="space-between" alignItems="center">
-                        <Grid item >
-                            <Typography variant="body" align="left">To</Typography>
+                        <Grid container item justify="space-between" alignItems="center">
+                            <Grid item >
+                                <Typography variant="body" align="left">From</Typography>
+                            </Grid>
+                            <Grid item xs={9}>
+                                <TextField InputLabelProps={{ shrink: true }} variant="outlined" error={error.slng} helperText={error.slng ? "Enter valid coordinate" : null} value={slng} label="Longitude" onChange={(e) => setInputFields({ ...inputFields, slng: e.target.value })} />
+                                <TextField InputLabelProps={{ shrink: true }} variant="outlined" error={error.slat} helperText={error.slat ? "Enter valid coordinate" : null} value={slat} label="Latitude" onChange={(e) => setInputFields({ ...inputFields, slat: e.target.value })} />
+                            </Grid>
                         </Grid>
-                        <Grid item xs={8}>
-                            <TextField error={error.elng} helperText={error.elng ? "Enter valid coordinate" : null} value={elng} label="Longitude" onChange={(e) => setInputFields({ ...inputFields, elng: e.target.value })} />
-                            <TextField error={error.elat} helperText={error.elat ? "Enter valid coordinate" : null} value={elat} label="Latitude" onChange={(e) => setInputFields({ ...inputFields, elat: e.target.value })} />
+
+                        <Grid container item justify="space-between" alignItems="center">
+                            <Grid item >
+                                <Typography variant="body" align="left">To</Typography>
+                            </Grid>
+                            <Grid item xs={9}>
+                                <TextField InputLabelProps={{ shrink: true }} variant="outlined" error={error.elng} helperText={error.elng ? "Enter valid coordinate" : null} value={elng} label="Longitude" onChange={(e) => setInputFields({ ...inputFields, elng: e.target.value })} />
+                                <TextField InputLabelProps={{ shrink: true }} variant="outlined" error={error.elat} helperText={error.elat ? "Enter valid coordinate" : null} value={elat} label="Latitude" onChange={(e) => setInputFields({ ...inputFields, elat: e.target.value })} />
+                            </Grid>
                         </Grid>
-                    </Grid>
+                    </Grid>}
 
                     <Grid container item justify="space-between" alignItems="center">
                         <Grid item >
@@ -164,6 +213,24 @@ function EditMovement(props) {
                                 }}
                             >
                                 <GithubPicker color={color} onChangeComplete={(color) => {
+                                    props.drawControl.current.draw.delete(['start', 'end'])
+                                    setTimeout(() => {
+                                        props.drawControl.current.draw.add({
+                                            type: 'Feature',
+                                            properties: { color: color.hex },
+                                            id: 'start',
+                                            geometry: { type: 'Point', coordinates: [slng, slat] }
+
+                                        })
+                                        props.drawControl.current.draw.add({
+                                            type: 'Feature',
+                                            properties: { color: color.hex },
+                                            id: 'end',
+                                            geometry: { type: 'Point', coordinates: [elng, elat] }
+
+                                        })
+
+                                    }, 1)
                                     setInputFields({ ...inputFields, color: color.hex })
                                     closePopover()
                                 }} />
@@ -178,7 +245,7 @@ function EditMovement(props) {
                     </Grid>
                     <Grid container item justify="flex-end" alignItems="center">
                         <Button onClick={cancel} variant="contained">Cancel</Button>
-                        <Button onClick={save} variant="contained" color="primary">Save</Button>
+                        <Button ref={saveBtn} onClick={save} variant="contained" color="primary">Save</Button>
                     </Grid>
 
                 </Grid>
