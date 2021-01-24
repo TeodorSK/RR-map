@@ -1,23 +1,17 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import ReactMapboxGl, { Marker, Popup, Layer, Feature, Source, GeoJSONLayer } from 'react-mapbox-gl';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import ReactMapboxGl from 'react-mapbox-gl';
 import DrawControl from 'react-mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import StaticMode from '@mapbox/mapbox-gl-draw-static-mode'
 
-import NewMovementInput from './NewMovementInput';
-import MovementsList from './MovementsList';
 import RouteList from './RouteList';
 
 import Grid from '@material-ui/core/Grid';
 import Card from '@material-ui/core/Card';
 import Box from '@material-ui/core/Box';
-import CityPin from './CityPin';
 
 import { Button } from '@material-ui/core';
 import AddCircleIcon from '@material-ui/icons/AddCircle';
-
-import ColorizeIcon from '@material-ui/icons/Colorize';
-import ColorLensIcon from '@material-ui/icons/ColorLens';
 
 import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
@@ -115,27 +109,60 @@ function MapContainer(props) {
         setSnackbarState({ ...snackbarState, open: false });
     };
 
+    // Color each line according to it's lineColor property
+    const drawStyles = [{
+        'id': 'custom-line',
+        'type': 'line',
+        'filter': ['all',
+            ['==', '$type', 'LineString'],
+            ['has', 'user_lineColor']
+        ],
+        'paint': {
+            'line-color': ['get', 'user_lineColor'],
+        }
+    },
+    {
+        'id': 'highlight-vertices',
+        'type': 'circle',
+        'filter': ['all',
+            ['==', '$type', 'LineString'],
+            ['has', 'user_lineColor']
+        ],
+        'paint': {
+            'circle-radius': 3,
+            'circle-color': ['get', 'user_lineColor']
+        }
+    },
+    {
+        'id': 'cities',
+        'type': 'circle',
+        'filter': ['all',
+            ['==', '$type', 'Point'],
+            ['has', 'user_color']
+        ],
+        'paint': {
+            'circle-radius': 6,
+            'circle-color': ['get', 'user_color']
+        }
+    }];
+
     const Map = useMemo(props => ReactMapboxGl({
         accessToken:
             'pk.eyJ1IjoidGVvZG9yc2siLCJhIjoiY2trMXJyZGxxMDZuMzJ2a3p1cGE4cXdxeCJ9.6y5XCy4WYn_JaPSEsANL5w'
     }), [])
 
-
-
     const mapClick = (map, e) => {
         const { lng, lat } = e.lngLat;
-
-        // Grid sensitivity is 1 decimals
         const roundedLngLat = new LngLat(lng.toFixed(GRID_SENSITIVITY), lat.toFixed(GRID_SENSITIVITY))
-        console.log(`Clicked at ${lng} ${lat}`);
-        console.log(`Current Map Center: ${map.getCenter()}`);
+        // console.log(`Clicked at ${lng} ${lat}`);
+        // console.log(`Current Map Center: ${map.getCenter()}`);
         setLastClickLngLat(roundedLngLat)
     }
 
     // CRUD operations
     const addMovement = ({ slat, slng, elat, elng, title, description, color }) => {
         if (!isMovementUnique(slat, slng, elat, elng, description)) {
-            console.log(`User tried to add a non-unique movement`)
+            // console.log(`User tried to add a non-unique movement`)
             setSnackbarState({
                 ...snackbarState,
                 open: true,
@@ -171,7 +198,6 @@ function MapContainer(props) {
     const editMovement = ({ slat, slng, elat, elng, title, description, color, id }) => {
         const thisMovement = movements.find(e => e.id === id);
         if (!isMovementUnique(slat, slng, elat, elng, description, id)) {
-            console.log(`User tried to edit movement, non unique`)
             setSnackbarState({
                 ...snackbarState,
                 open: true,
@@ -218,25 +244,23 @@ function MapContainer(props) {
     }
 
     const isMovementUnique = (slat, slng, elat, elng, description, id = null) => {
-
         var isUnique = true;
-
         movements.forEach((e, i) => {
+            console.log(`${e.coordinates[0][0]} and ${slat}`)
             const identical =
-                (e.coordinates[0][0] == slat &&
-                    e.coordinates[0][1] == slng &&
-                    e.coordinates[1][0] == elat &&
-                    e.coordinates[1][1] == elng &&
-                    e.description == description &&
+                (e.coordinates[0][1] == slat &&
+                    e.coordinates[0][0] == slng &&
+                    e.coordinates[1][1] == elat &&
+                    e.coordinates[1][0] == elng &&
                     id != e.id
                 )
             if (identical) {
                 isUnique = false;
             }
         })
-
         return isUnique;
     }
+
 
     // Sets the current features to the movements array
     const renderLines = () => {
@@ -263,42 +287,6 @@ function MapContainer(props) {
         renderLines()
     }, [movements, snackbarState])
 
-    // Color each line according to it's lineColor property
-    const drawStyles = [{
-        'id': 'custom-line',
-        'type': 'line',
-        'filter': ['all',
-            ['==', '$type', 'LineString'],
-            ['has', 'user_lineColor']
-        ],
-        'paint': {
-            'line-color': ['get', 'user_lineColor'],
-        }
-    },
-    {
-        'id': 'highlight-vertices',
-        'type': 'circle',
-        'filter': ['all',
-            ['==', '$type', 'LineString'],
-            ['has', 'user_lineColor']
-        ],
-        'paint': {
-            'circle-radius': 3,
-            'circle-color': ['get', 'user_lineColor']
-        }
-    },
-    {
-        'id': 'cities',
-        'type': 'circle',
-        'filter': ['all',
-            ['==', '$type', 'Point'],
-            ['has', 'user_color']
-        ],
-        'paint': {
-            'circle-radius': 6,
-            'circle-color': ['get', 'user_color']
-        }
-    }];
 
     const cartDist = (pt1, pt2) => {
         const [x1, y1] = pt1;
@@ -383,7 +371,9 @@ function MapContainer(props) {
                     }
                 }
             })
+
             console.log(routeNodes)
+
             setRoute(routeNodes)
 
             setTimeout(() => {
@@ -399,17 +389,6 @@ function MapContainer(props) {
                     }]
                 })
             }, 1)
-            // Draw route
-            drawControl.current.draw.deleteAll()
-
-            drawControl.current.draw.set({
-                type: 'FeatureCollection',
-                features: [{
-                    type: 'Feature',
-                    properties: { lineColor: "#000" },
-                    geometry: { type: 'LineString', coordinates: routeNodes.map((e) => e.coordinates) }
-                }]
-            })
         }
         else {
             setSnackbarState({
@@ -429,16 +408,14 @@ function MapContainer(props) {
                     anchorOrigin={{ vertical, horizontal }}
                     open={open}
                     onClose={handleSnackbarClose}
-                    key={vertical + horizontal}
-                >
+                    key={vertical + horizontal}>
+
                     <Alert onClose={handleSnackbarClose} severity={snackbarState.color}>
                         {snackbarState.text}
                     </Alert>
                 </Snackbar >
                 <Grid item xs={4}>
                     <Card >
-
-
                         <TabMenu tabIndex={tabIndex} tabChange={tabChange} />
                         {renderTabContents(tabIndex)}
                     </Card>
@@ -451,9 +428,8 @@ function MapContainer(props) {
                                 height: '90vh',
                             }}
                             onClick={mapClick}
-                            center={mapCenter}
-                        // onRender={renderLines}
-                        >
+                            center={mapCenter}>
+
                             <DrawControl
                                 modes={{ _static: StaticMode }}
                                 defaultMode="_static"

@@ -3,7 +3,6 @@ import MoreVertIcon from '@material-ui/icons/MoreVert';
 import CallMadeIcon from '@material-ui/icons/CallMade';
 import CallReceivedIcon from '@material-ui/icons/CallReceived';
 import { Box, Card, Grid, Typography } from '@material-ui/core';
-import SubjectIcon from '@material-ui/icons/Subject';
 
 
 function RouteList(props) {
@@ -16,7 +15,7 @@ function RouteList(props) {
                         {node.type === "start" ? <CallMadeIcon fontSize="large" style={{ color: '#F78914' }} /> : <CallReceivedIcon fontSize="large" style={{ color: '#92CD28' }} />}
                     </Grid>
                     <Grid item >
-                        <Typography align="left" variant="h5" >{node.type === "start" ? "Pickup: " : "Dropoff: "}</Typography>
+                        <Typography align="left" variant="h6" >{node.type === "start" ? "Pickup: " : "Dropoff: "}</Typography>
                     </Grid>
                     <Grid item>
 
@@ -29,11 +28,12 @@ function RouteList(props) {
                         </Typography>
                     </Grid>
                 </Grid>
-                <Grid container item>
+                {(i !== props.route.length - 1) && <Grid container item>
                     <Grid item xs={3}>
                         <MoreVertIcon fontSize="large" style={{ color: '#ADADAD' }} />
                     </Grid>
-                </Grid>
+                </Grid>}
+
 
             </Grid>
         </Box>

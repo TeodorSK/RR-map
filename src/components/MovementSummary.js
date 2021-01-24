@@ -6,7 +6,8 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import EditMovement from './EditMovement';
 import RoomIcon from '@material-ui/icons/Room';
 import SubjectIcon from '@material-ui/icons/Subject';
-
+import EmojiTransportationIcon from '@material-ui/icons/EmojiTransportation';
+import haversine from 'haversine'
 
 function MovementSummary(props) {
 
@@ -67,6 +68,17 @@ function MovementSummary(props) {
                                 {`(${line.coordinates[0][0]},${line.coordinates[0][1]})`}
                                 <ArrowRightAltIcon />
                                 {`(${line.coordinates[1][0]},${line.coordinates[1][1]})`}
+                            </Typography>
+                        </Grid>
+                    </Grid>
+                    <Grid container item alignItems="center">
+                        <Grid item>
+                            <EmojiTransportationIcon />
+                        </Grid>
+                        <Grid item>
+                            <Typography variant="h5">
+                                Total distance: {haversine({ latitude: line.coordinates[0][1], longitude: line.coordinates[0][0] },
+                                { latitude: line.coordinates[1][1], longitude: line.coordinates[1][0] }).toFixed(4)} km
                             </Typography>
                         </Grid>
                     </Grid>
