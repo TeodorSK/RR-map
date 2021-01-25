@@ -162,7 +162,6 @@ function MapContainer(props) {
     // CRUD operations
     const addMovement = ({ slat, slng, elat, elng, title, description, color }) => {
         if (!isMovementUnique(slat, slng, elat, elng, description)) {
-            // console.log(`User tried to add a non-unique movement`)
             setSnackbarState({
                 ...snackbarState,
                 open: true,
@@ -248,10 +247,10 @@ function MapContainer(props) {
         movements.forEach((e, i) => {
             console.log(`${e.coordinates[0][0]} and ${slat}`)
             const identical =
-                (e.coordinates[0][1] == slat &&
-                    e.coordinates[0][0] == slng &&
-                    e.coordinates[1][1] == elat &&
-                    e.coordinates[1][0] == elng &&
+                (e.coordinates[0][1] === slat &&
+                    e.coordinates[0][0] === slng &&
+                    e.coordinates[1][1] === elat &&
+                    e.coordinates[1][0] === elng &&
                     id != e.id
                 )
             if (identical) {
@@ -276,9 +275,6 @@ function MapContainer(props) {
                     }
                 })
             })
-        }
-        else {
-            console.log(`Tried to render lines but drawControl.current was not set`)
         }
     }
 
@@ -337,7 +333,7 @@ function MapContainer(props) {
                 _movements.forEach((e, i) => {
                     var prevPoint = routeNodes[routeNodes.length - 1].coordinates
 
-                    if (e.coordinates == []) {
+                    if (e.coordinates === []) {
                         // Popped both start and end coordinate of point e
                     }
                     else if (e.coordinates[0]) {
@@ -366,13 +362,11 @@ function MapContainer(props) {
             // Prevents [T->M->M->S], instead returns [T->M->S]
             routeNodes.forEach((e, i) => {
                 if (routeNodes[i + 1] != null) {
-                    if (routeNodes[i].coordinates[0] == routeNodes[i + 1].coordinates[0] && routeNodes[i].coordinates[1] == routeNodes[i + 1].coordinates[1]) {
+                    if (routeNodes[i].coordinates[0] === routeNodes[i + 1].coordinates[0] && routeNodes[i].coordinates[1] === routeNodes[i + 1].coordinates[1]) {
                         routeNodes.splice(i, 1)
                     }
                 }
             })
-
-            console.log(routeNodes)
 
             setRoute(routeNodes)
 

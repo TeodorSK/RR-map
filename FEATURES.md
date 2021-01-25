@@ -45,11 +45,9 @@ This document will consist of a list of specifications outlined in the coding ch
 - According to **Bonus requirement 3**, subsequent nodes in the route with the same coordinates are deleted from the route. This creates an issue in the **Route** tab, where a certain movement's Dropoff point doesn't show up in the route list.
 	- For example: [Toronto -> Montreal] and [Montreal -> Ottawa] gets condensed into [Toronto -> Montreal -> Ottawa]
 
-### Notes
-- Really good opportunity for learning the MapboxGL and Mapbox Draw frameworks and a chance to apply ES7 best practices using hooks for controlling the Map and Draw components
-
-### Unimplemented features - next iteration priorities
+### Unimplemented features
 - Bonus requirement 1 - I wasn't able to implement a way for the user to select the city as a location due to difficulties in working with certain Mapbox components using the `react-mapbox-gl` library. Ultimately I decided to focus on the other core features and improve the user experience in a different way. Given another iteration, I would implement this feature by using the MaterialUI Autocomplete component to communicate with an api that returns logitude/latitude for a given city name.
 - Bonus requirement 5 - I wasn't able to get the Mapbox Directions API to work with the current system without affecting performance and code complexity. Given another iteration, I would make sure to research the Directions API more and implement the polyline directions in a more concise and robust way.
-- Bonus requirement 6 - Given another iteration, I would structure the codebase better by separating the utility functions (Routing algorithm, cartesian distance, rendering functions),  into their own folders and components, rather than keeping them within the MapContainer.js component. Given another chance at the project, I would put more emphasis on code consistency as well. 
+- Bonus requirement 6 - Given another iteration, I would structure the codebase better by separating the utility functions (Routing algorithm, cartesian distance, rendering functions),  into their own folders and components, rather than keeping them within the MapContainer.js component. Given another chance at the project, I would put more emphasis on code consistency as well.
+- Known bug: Changing color on a line and clicking cancel doesn't remove the two newly colored vertices until the next re-render happens
 

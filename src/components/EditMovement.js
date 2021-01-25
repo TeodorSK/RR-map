@@ -1,11 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import EditIcon from '@material-ui/icons/Edit';
-import DeleteIcon from '@material-ui/icons/Delete';
-import ColorizeIcon from '@material-ui/icons/Colorize';
 import RoomIcon from '@material-ui/icons/Room';
 import ColorLensIcon from '@material-ui/icons/ColorLens';
-import SubjectIcon from '@material-ui/icons/Subject';
-import { Box, Button, Card, Divider, Grid, IconButton, Popover, TextField, Tooltip, Typography } from '@material-ui/core';
+import { Box, Button, Card, Grid, Popover, TextField, Typography } from '@material-ui/core';
 import { GithubPicker } from 'react-color';
 
 function EditMovement(props) {
