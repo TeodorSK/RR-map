@@ -168,7 +168,7 @@ function EditMovement(props) {
                         </Grid>
                     </Grid>
 
-                    {(pickLngLat.start || pickLngLat.end || slat || elat) && <Grid item container>
+                    {(pickLngLat.start || pickLngLat.end || slat || elat || error.slat || error.elat) && <Grid item container>
 
                         <Grid container item justify="space-between" alignItems="center">
                             <Grid item >
@@ -209,24 +209,27 @@ function EditMovement(props) {
                                 }}
                             >
                                 <GithubPicker color={color} onChangeComplete={(color) => {
-                                    props.drawControl.current.draw.delete(['start', 'end'])
-                                    setTimeout(() => {
-                                        props.drawControl.current.draw.add({
-                                            type: 'Feature',
-                                            properties: { color: color.hex },
-                                            id: 'start',
-                                            geometry: { type: 'Point', coordinates: [slng, slat] }
+                                    if (slng, elng) {
 
-                                        })
-                                        props.drawControl.current.draw.add({
-                                            type: 'Feature',
-                                            properties: { color: color.hex },
-                                            id: 'end',
-                                            geometry: { type: 'Point', coordinates: [elng, elat] }
+                                        props.drawControl.current.draw.delete(['start', 'end'])
+                                        setTimeout(() => {
+                                            props.drawControl.current.draw.add({
+                                                type: 'Feature',
+                                                properties: { color: color.hex },
+                                                id: 'start',
+                                                geometry: { type: 'Point', coordinates: [slng, slat] }
 
-                                        })
+                                            })
+                                            props.drawControl.current.draw.add({
+                                                type: 'Feature',
+                                                properties: { color: color.hex },
+                                                id: 'end',
+                                                geometry: { type: 'Point', coordinates: [elng, elat] }
 
-                                    }, 1)
+                                            })
+
+                                        }, 1)
+                                    }
                                     setInputFields({ ...inputFields, color: color.hex })
                                     closePopover()
                                 }} />
